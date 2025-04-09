@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reaction Time Test - Minecraft Style</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Courier New', monospace;
+      background-color: #1e1e1e;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      color: white;
+    }
+    #game-box {
+      width: 700px;
+      height: 300px;
+      border-radius: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 30px;
+      font-weight: bold;
+      background-color: #b22222;
+      cursor: pointer;
+      transition: background-color 0.3s, box-shadow 0.3s;
+      box-shadow: 0 0 25px #000000;
+      text-align: center;
+      padding: 0 20px;
+    }
+    #message {
+      margin-top: 20px;
+      font-size: 18px;
+      text-align: center;
+    }
+    #scoreboard {
+      margin-top: 40px;
+      padding: 25px;
+      border-radius: 20px;
+      background-color: #222;
+      display: none;
+      animation: fadeInUp 1s ease-out;
+      box-shadow: 0 0 35px #00ff00;
+    }
+    @keyframes fadeInUp {
+      from { transform: translateY(100px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+  <div id="game-box">WAIT...</div>
+  <div id="message">Click when the box turns GREEN (Grass Block)</div>
+  <div id="scoreboard"></div>
+
+  <audio id="fakeout-sound" src="https://cdn.pixabay.com/download/audio/2022/03/21/audio_0b0bc1a34a.mp3?filename=click-124467.mp3"></audio>
+  <audio id="success-sound" src="https://cdn.pixabay.com/download/audio/2022/03/21/audio_5f2f4e6c4a.mp3?filename=success-1-6297.mp3"></audio>
+  <audio id="fail-sound" src="https://cdn.pixabay.com/download/audio/2022/03/21/audio_881ac00375.mp3?filename=error-126627.mp3"></audio>
+
+  <script>
+    const gameBox = document.getElementById('game-box');
+    const message = document.getElementById('message');
+    const scoreboard = document.getElementById('scoreboard');
+
+    const fakeoutSound = document.getElementById('fakeout-sound');
+    const successSound = document.getElementById('success-sound');
+    const failSound = document.getElementById('fail-sound');
+
+    let timeout, startTime, reactionTime, tries = 0;
+    let clickedEarly = false;
+    let reactionScores = [];
+
+    const fakeoutTexts = [
+      "Ready? Nah...",
+      "Oops, not yet!",
+      "Wait... WAIT... oh wait again!",
+      "You're too eager!",
+      "This isn't a sprint... or is it?",
+      "Think fast! But not now!",
+      "Pro-level focus needed.",
+      "Distraction level: 100",
+      "Did you blink?",
+      "Just kidding!",
+      "Almost... psych!",
+      "Minecraft speed ain't easy!",
+      "Grass Block? More like Wait Block!",
+      "Stay sharp, not twitchy!",
+      "You're not fast... yet!"
+    ];
+
+    const fakeouts = [500, 700, 1000, 800, 650, 1300, 1500, 900, 1100, 750, 1450, 1250];
+
+    const quotes = [
+      "Practice makes perfect!",
+      "Keep trying, warrior!",
+      "Even Steve had to train!",
+      "Reaction is a skill — build it!",
+      "You're getting faster each round!",
+      "Legends aren’t born — they train!",
+      "You’re improving like a Redstone master!",
+      "Dig deep, click fast!",
+      "Slower than a Slime? Not for long!",
+      "This time, aim for Ender speed!",
+      "Fail fast, improve faster!",
+      "The creeper waits for no one!",
+      "Mobs don't wait — neither should you!",
+      "Train now, rule later!",
+      "The more you fail, the better you get!",
+      "Don't stop till your clicks are instant!"
+    ];
+
+    function getRandomFakeouts() {
+      const count = Math.floor(Math.random() * 8) + 5;
+      return Array.from({ length: count }, () => fakeouts[Math.floor(Math.random() * fakeouts.length)]);
+    }
+
+    function startGame() {
+      gameBox.style.backgroundColor = '#b22222';
+      message.textContent = "Click when the box turns GREEN (Grass Block)";
+      clickedEarly = false;
+      gameBox.dataset.ready = 'false';
+      scoreboard.style.display = 'none';
+
+      const fakes = getRandomFakeouts();
+      let totalDelay = 0;
+
+      fakes.forEach((delay) => {
+        totalDelay += delay;
+        setTimeout(() => {
+          if (!clickedEarly) {
+            gameBox.style.backgroundColor = '#2e8b57';
+            gameBox.textContent = fakeoutTexts[Math.floor(Math.random() * fakeoutTexts.length)];
+            fakeoutSound.play();
+            setTimeout(() => {
+              if (!clickedEarly) {
+                gameBox.style.backgroundColor = '#b22222';
+                gameBox.textContent = "WAIT...";
+              }
+            }, 150 + Math.random() * 300);
+          }
+        }, totalDelay);
+      });
+
+      totalDelay += 1500 + Math.random() * 3000;
+      timeout = setTimeout(() => {
+        gameBox.style.backgroundColor = '#00ff00';
+        gameBox.textContent = "CLICK NOW!";
+        startTime = Date.now();
+        gameBox.dataset.ready = 'true';
+      }, totalDelay);
+    }
+
+    gameBox.addEventListener('click', () => {
+      if (gameBox.dataset.ready === 'true') {
+        reactionTime = Date.now() - startTime;
+        const displayedReaction = reactionTime + (Math.random() > 0.6 ? Math.floor(Math.random() * 50 - 25) : 0);
+        message.textContent = `Your reaction time: ${displayedReaction} ms`;
+        gameBox.dataset.ready = 'false';
+        successSound.play();
+        tries++;
+        reactionScores.push(displayedReaction);
+
+        if (tries >= 5) {
+          showScoreboard();
+          tries = 0;
+          reactionScores = [];
+        } else {
+          setTimeout(startGame, 3000);
+        }
+      } else {
+        clearTimeout(timeout);
+        clickedEarly = true;
+        message.textContent = "Too soon! You clicked before the Grass Block!";
+        gameBox.style.backgroundColor = '#8b0000';
+        gameBox.textContent = "Oops!";
+        failSound.play();
+        tries++;
+        setTimeout(startGame, 2500);
+      }
+    });
+
+    function showScoreboard() {
+      const avg = Math.round(reactionScores.reduce((a, b) => a + b, 0) / reactionScores.length);
+      const quote = quotes[Math.floor(Math.random() * quotes.length)];
+      const details = reactionScores.map((r, i) => `<p>Attempt ${i + 1}: ${r} ms</p>`).join('');
+      scoreboard.innerHTML = `
+        <h2>Your Scoreboard</h2>
+        ${details}
+        <p><strong>Average Reaction Time:</strong> ${avg} ms</p>
+        <p><strong>Total Attempts:</strong> 5</p>
+        <p style="color: #90ee90; font-style: italic;">"${quote}"</p>
+      `;
+      scoreboard.style.display = 'block';
+    }
+
+    startGame();
+  </script>
+</body>
+</html>
